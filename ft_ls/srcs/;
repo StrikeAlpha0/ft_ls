@@ -1,0 +1,153 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   ft_listdirectory.c                                 :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: msharpe <marvin@42.fr>                     +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2018/06/01 16:27:42 by msharpe           #+#    #+#             */
+/*   Updated: 2018/06/21 22:58:55 by msharpe          ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
+#include "../libftls.h"
+#include "../libftls/libftprintf.h"
+#include "../libftls/libft/libft.h"
+
+
+t_ls_link		*ft_initialize_list(char *path, t_ls_stru *ls_list)
+{
+	//create linked list head to go as the start of the linked list in the structure, then call it 
+	t_ls_link *head;
+	if (!(head = malloc(sizeof(t_ls_link))))
+		return(0);
+	head->next = NULL;
+	head->path = (char *)malloc(sizeof(char)*ft_strlen(path) + 1);
+	ft_memcpy(head->path, path, ft_strlen(path));
+	return(head);
+}
+
+t_ls_link		*ft_savedaname(char *path, t_ls_stru *ls_list, t_ls_link *head)
+{
+	if(head->path == NULL)
+		head->path = path;
+	else if(head->path != '\0')
+	{
+		while(head->next != NULL)
+			head = head->next;
+		//ft_printf("Ok");
+		head->next = (t_ls_link *)malloc(sizeof(t_ls_link));
+		head = head->next;
+		head->path = (char *)malloc(sizeof(char) * ft_strlen(path));
+		head->path = path;
+		//ft_printf("%s\n\n\n", head->path);
+		head->next = NULL;
+	}
+	return(head);
+}
+
+t_ls_link		*setll(t_ls_link *head)
+{
+	head->path = NULL;
+	head->next = NULL;
+	return(head);
+}
+
+/*
+ ** Need to add av[1] if not listed as a flag to the front of dir->d_name
+ */
+void		ft_listdirectory(char *path, t_ls_stru *ls_list)
+{
+	//ft_printf("Uhhh");
+	ls_list->l_list_flag = 0;
+	int yes;
+	int why;
+	DIR *d = opendir(path);
+	t_ls_link *head = malloc(sizeof(t_ls_link));
+	t_ls_link *start;
+	int starte = 0;
+	head = setll(head);
+	start = head;
+
+	if (d == NULL)
+		return ;
+	struct dirent	*dir;
+	struct stat		status;
+	ls_list->cap_r_flag = 1;
+	//ls_list->l_flag = 1;
+	//ls_list->a_flag = 1;
+	while((dir = readdir(d)) != NULL) // read directory going forward
+	{
+		yes = (S_ISDIR(status.st_mode)) ? 1 : 0;
+		char *bacon = ft_strjoin(path, "/");
+		char *bits = ft_strjoin(bacon, dir->d_name);
+		if ((why = stat(bits, &status)) != 0)
+		{
+			ft_printf("{red}I'm cutting out here!");
+			ft_printf("%s", dir->d_name);
+			return ;
+		}
+		if (yes == 1 && dir->d_name[0] != '.')
+		{
+			if(ls_list ->l_flag == 1)
+				ft_fullinfo(dir->d_name, ls_list);	
+			if(ls_list->cap_r_flag == 1)
+			{
+				head = ft_savedaname(dir->d_name, ls_list, head);//add "filename" to linked list
+				if(starte == 0)
+				{
+					start = head;
+					starte = 1;
+				}
+				ft_printf("{cyan}%s\n", dir->d_name);
+			}
+		}
+		else if(ls_list->a_flag == 1 && yes == 1)
+		{
+			if(ls_list->l_flag == 1)
+				ft_fullinfo(dir->d_name, ls_list);
+			ft_printf("{cyan}%s\n", dir->d_name);
+		}
+		else if(ls_list->a_flag == 1) //a_flag is present
+		{
+			if(ls_list->l_flag == 1)
+				ft_fullinfo(dir->d_name, ls_list);
+			ft_printf("{red}%s\n", dir->d_name);
+		}
+		else if(dir->d_name[0] != '.') //no flag is present
+		{	
+			if(ls_list->l_flag == 1)
+				ft_fullinfo(dir->d_name, ls_list);
+			ft_printf("{red}%s\n", dir->d_name);
+		}
+	}
+	//ft_printf("This is some bull");
+	closedir(d);
+	/*while(head->next != NULL)
+	  {
+	  ft_printf("{green}Made it!");
+	  ft_printf("%s", head->path);
+	  head = head->next;
+	  }*/
+	//ft_printf("Wheeeeeeee");
+	if(ls_list->cap_r_flag == 1)
+	{	
+		//ft_printf("{white}I'm in...:%s", head->path);
+		//ft_printf("%d", head->path == 0);
+		while(start->path)
+		{
+			//ft_printf("{blue}I'm in deep bois...");
+			ft_printf("\n%s:\n", start->path);
+			path = start->path;
+			ft_listdirectory(path, ls_list); //<-----
+			if(start->next == NULL)
+				break;
+			start = start->next;
+		}
+		free(head);
+	}
+}
+
+//need to make a double pointer where the items are added with one pointer and another pointer stays on the start of list. The actual running of the function will come from that starting point pointer.
+//
+//seems to not be sending the path into the next function
